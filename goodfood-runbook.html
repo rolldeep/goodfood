@@ -1,0 +1,439 @@
+<title>Good Food Runbook</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: ops runbook — triage form beside a live "next plays" panel, then a catalogue of numbered plays, escalation, and a weekly review loop. */
+:root {
+  --bg: #F3F6F1;
+  --surface: #FFFFFF;
+  --fg: #18221C;
+  --muted: #56645B;
+  --line: #D5DED6;
+  --accent: #2C6A4C;      /* basil */
+  --accent-soft: #E1EEE5;
+  --p1: #B02E4C;          /* beet */
+  --p1-soft: #F8E3E8;
+  --p2: #A8620E;          /* carrot */
+  --p2-soft: #FBEEDC;
+  --ok: #3E7A3A;
+  --ok-soft: #E3F0E1;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111814; --surface: #18221C; --fg: #E6EEE8; --muted: #9DAEA3; --line: #2C3A31;
+    --accent: #7CC59F; --accent-soft: #1F3328;
+    --p1: #F0839B; --p1-soft: #3A1E26; --p2: #F0B061; --p2-soft: #3A2B16; --ok: #93D08D; --ok-soft: #1E3220;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111814; --surface: #18221C; --fg: #E6EEE8; --muted: #9DAEA3; --line: #2C3A31;
+  --accent: #7CC59F; --accent-soft: #1F3328;
+  --p1: #F0839B; --p1-soft: #3A1E26; --p2: #F0B061; --p2-soft: #3A2B16; --ok: #93D08D; --ok-soft: #1E3220;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.12; margin: 0; }
+h1 { font-size: clamp(2.2rem, 6vw, 3.6rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.5rem, 3.4vw, 2rem); font-weight: 800; }
+h3 { font-size: 1.2rem; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--accent); }
+.mono { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.muted { color: var(--muted); }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+header { padding-block: 48px 32px; display: grid; gap: 18px; border-bottom: 1px solid var(--line); }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); }
+.lede { max-width: 64ch; font-size: 1.12rem; }
+.how { display: flex; flex-wrap: wrap; gap: 10px; }
+.how span { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 0.92rem; }
+.how b { font-family: var(--font-mono); color: var(--accent); margin-right: 6px; }
+
+section { padding-block: 44px 8px; display: grid; gap: 20px; }
+.section-head { display: grid; gap: 6px; max-width: 70ch; }
+
+/* Triage */
+.triage { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 860px) { .triage { grid-template-columns: minmax(0, 1fr); } }
+.example-note { background: var(--p2-soft); color: var(--fg); border-radius: var(--radius); padding: 10px 14px; font-size: 0.94rem; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.qlist { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.q { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); gap: 4px 12px; padding-block: 14px; border-bottom: 1px solid var(--line); }
+.q .num { font-family: var(--font-mono); color: var(--muted); padding-top: 2px; }
+.q p { font-weight: 700; }
+.q .hint { font-weight: 400; font-size: 0.9rem; color: var(--muted); }
+.seg { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 14px; font-size: 0.92rem; cursor: pointer; user-select: none; }
+.seg input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+.seg input[value="0"]:checked + label { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); font-weight: 700; }
+.seg input[value="1"]:checked + label { background: var(--p2-soft); border-color: var(--p2); color: var(--p2); font-weight: 700; }
+.seg input[value="2"]:checked + label { background: var(--p1-soft); border-color: var(--p1); color: var(--p1); font-weight: 700; }
+
+.panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: grid; gap: 16px; }
+@media (max-width: 860px) { .panel { position: static; } }
+.tally { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tally div { border-radius: 8px; padding: 10px; display: grid; gap: 2px; }
+.tally strong { font-family: var(--font-display); font-size: 1.8rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.t-p1 { background: var(--p1-soft); color: var(--p1); }
+.t-p2 { background: var(--p2-soft); color: var(--p2); }
+.t-ok { background: var(--ok-soft); color: var(--ok); }
+.next { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.next li { display: grid; gap: 4px; padding: 12px 12px 12px 14px; border-radius: 8px; background: var(--bg); border-left: 4px solid var(--line); }
+.next li.sev-2 { border-left-color: var(--p1); }
+.next li.sev-1 { border-left-color: var(--p2); }
+.next a { color: var(--fg); text-decoration: none; font-weight: 700; }
+.next a:hover { text-decoration: underline; }
+.next .cta { font-size: 0.93rem; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: var(--bg); border-radius: 8px; padding: 8px 14px; font-weight: 700; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.status { font-size: 0.88rem; color: var(--muted); min-height: 1.3em; }
+.copy-fallback { width: 100%; min-height: 160px; font: 0.85rem/1.4 var(--font-mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+
+/* Plays */
+.plays { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 16px; }
+.play { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: grid; gap: 12px; align-content: start; scroll-margin-top: 24px; }
+.play:target { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.play-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pill { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.pill.sev-2 { background: var(--p1-soft); color: var(--p1); }
+.pill.sev-1 { background: var(--p2-soft); color: var(--p2); }
+.pill.sev-0 { background: var(--ok-soft); color: var(--ok); }
+.field { display: grid; gap: 2px; }
+.field .mono { color: var(--muted); font-size: 0.7rem; }
+.do { background: var(--accent-soft); border-radius: 8px; padding: 12px; display: grid; gap: 4px; }
+.do .mono { color: var(--accent); }
+.do p { font-weight: 700; }
+.recipe { font-style: italic; }
+.src { font-size: 0.88rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+
+/* Escalation + review */
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 760px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: grid; gap: 12px; align-content: start; }
+.box.alert { border-color: var(--p1); }
+.box ul, .box ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 8px; }
+.sources { font-size: 0.92rem; color: var(--muted); }
+.sources ul { padding-left: 1.2rem; display: grid; gap: 6px; }
+footer { padding-block: 40px 0; color: var(--muted); font-size: 0.88rem; border-top: 1px solid var(--line); margin-top: 40px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="meta-row mono"><span>Runbook · Nutrition</span><span>Owner: you</span><span>Cadence: weekly, 15 min</span></div>
+    <h1>Good Food Runbook</h1>
+    <p class="lede">A repeatable way to find what is hurting your eating and fix it one habit at a time. Answer the triage questions, run the top plays, and review every Sunday. It borrows from Bryan Johnson's Blueprint, Michael Pollan, Peter Attia, BJ Fogg's Tiny Habits, and published nutrition research.</p>
+    <div class="how">
+      <span><b>1</b>Triage: 11 questions, about 3 minutes</span>
+      <span><b>2</b>Run your top 1–2 plays for a week</span>
+      <span><b>3</b>Review on Sunday, then pick the next play</span>
+    </div>
+  </header>
+
+  <section id="triage" aria-labelledby="triage-h">
+    <div class="section-head">
+      <span class="mono muted">Step 1</span>
+      <h2 id="triage-h">Triage</h2>
+      <p class="muted">Think about the last two weeks. <b>Often</b> means most days and marks the play as P1 (fix first). <b>Sometimes</b> marks it as P2 (next up). <b>Rarely</b> means that area is fine for now.</p>
+    </div>
+    <div class="triage">
+      <div style="display:grid; gap:14px; min-width:0">
+        <div class="example-note" id="example-note">
+          <span>These are example answers. Change them to match your own habits.</span>
+          <button class="btn ghost" type="button" id="clear-btn">Clear answers</button>
+        </div>
+        <ol class="qlist" id="qlist"></ol>
+      </div>
+      <aside class="panel" aria-live="polite">
+        <div style="display:grid; gap:4px">
+          <span class="mono muted">Your plan</span>
+          <h3>Run these plays next</h3>
+        </div>
+        <div class="tally">
+          <div class="t-p1"><strong id="n-p1">0</strong><span class="mono">P1 fix first</span></div>
+          <div class="t-p2"><strong id="n-p2">0</strong><span class="mono">P2 next</span></div>
+          <div class="t-ok"><strong id="n-ok">0</strong><span class="mono">OK</span></div>
+        </div>
+        <ol class="next" id="next"></ol>
+        <p class="muted" style="font-size:0.9rem">Start with no more than two plays at once. Add another only after the first one feels automatic.</p>
+        <div class="btn-row">
+          <button class="btn" type="button" id="copy-btn">Copy my plan</button>
+        </div>
+        <p class="status" id="copy-status"></p>
+        <textarea class="copy-fallback" id="copy-fallback" readonly hidden aria-label="Your plan as text"></textarea>
+      </aside>
+    </div>
+  </section>
+
+  <section id="plays" aria-labelledby="plays-h">
+    <div class="section-head">
+      <span class="mono muted">Step 2</span>
+      <h2 id="plays-h">Plays</h2>
+      <p class="muted">Each play has one action for today, a tiny habit to make it stick, and a number to track. The labels show your current triage result.</p>
+    </div>
+    <div class="plays" id="play-grid"></div>
+  </section>
+
+  <section id="review" aria-labelledby="review-h">
+    <div class="section-head">
+      <span class="mono muted">Step 3</span>
+      <h2 id="review-h">Weekly review and escalation</h2>
+    </div>
+    <div class="two">
+      <div class="box">
+        <h3>Sunday review, 15 minutes</h3>
+        <ol>
+          <li>Retake the triage above with this week in mind.</li>
+          <li>Check the tracking number for each play you ran. Did it move?</li>
+          <li>For each play, decide to <b>keep</b> it (working, not yet automatic), <b>graduate</b> it (automatic now), or <b>shrink</b> it (too hard, make the step smaller).</li>
+          <li>Pick no more than one new play to add.</li>
+          <li>Write the shopping list and put one 60-minute prep block in your calendar.</li>
+        </ol>
+        <p class="muted" style="font-size:0.92rem">If you missed a day, don't treat it as failure. Shrink the habit until you can't skip it. BJ Fogg's rule is that a habit should be so easy you can do it on your worst day.</p>
+      </div>
+      <div class="box alert">
+        <h3>Escalate to a professional when</h3>
+        <ul>
+          <li>You binge (eating a lot while feeling out of control), purge, or make up for eating with fasting or exercise. Contact your doctor or an eating-disorder helpline. Skip calorie tracking and fasting plays.</li>
+          <li>You take diabetes or blood-pressure medication. Changing meal timing or carbs can shift your doses, so check with your doctor first.</li>
+          <li>You are pregnant or breastfeeding, have kidney disease, or have a diagnosed GI condition. A registered dietitian should set your protein, fiber and fasting targets.</li>
+          <li>You lose or gain weight quickly without explanation, or you feel tired or dizzy all the time.</li>
+        </ul>
+        <p class="muted" style="font-size:0.92rem">Bryan Johnson's full Blueprint protocol, with its strict calorie limits, supplements and very early last meal, is an extreme personal experiment run with medical supervision. This runbook uses its principles, not its protocol.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="sources" aria-labelledby="sources-h">
+    <div class="section-head"><h2 id="sources-h">Sources</h2></div>
+    <div class="sources">
+      <ul>
+        <li>Bryan Johnson, <i>Blueprint</i> protocol and <i>Don't Die</i>: no added sugar, no alcohol, mostly whole plants, early last meal to protect sleep, measure everything.</li>
+        <li>Michael Pollan, <i>In Defense of Food</i> (2008) and <i>Food Rules</i> (2009): "Eat food. Not too much. Mostly plants."</li>
+        <li>Peter Attia, <i>Outlive</i> (2023): protein targets well above the 0.8 g/kg RDA.</li>
+        <li>BJ Fogg, <i>Tiny Habits</i> (2019): anchor, tiny behavior, celebrate.</li>
+        <li>Hall et al., <i>Cell Metabolism</i> (2019): people on an ultra-processed diet ate about 500 kcal/day more than on an unprocessed diet.</li>
+        <li>McDonald et al., American Gut Project, <i>mSystems</i> (2018): eating 30+ plant types a week was linked to a more diverse gut microbiome. Tim Spector (ZOE) popularized the target.</li>
+        <li>WHO guideline on sugars (2015): free sugars under 10% of energy, ideally under 5%. WHO statement (2023): no safe level of alcohol for health.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Good Food Runbook. General education, not medical advice. Your answers are saved only in this browser.
+  </footer>
+</div>
+
+<script>
+const PLAYS = [
+  { id: "late", code: "PLAY-01", title: "Close the kitchen early",
+    q: "Do you eat within 3 hours of going to bed?", hint: "Including snacks and late dinners.",
+    why: "Late eating raises heart rate and glucose during the night and hurts sleep quality, which then drives cravings the next day. Bryan Johnson's Blueprint treats sleep as the top priority and finishes eating many hours before bed.",
+    today: "Pick a kitchen-closed time 3 hours before your usual bedtime and set a phone alarm for it.",
+    recipe: "After my kitchen-closed alarm rings, I will brush my teeth.",
+    track: "Nights this week with no food after the cutoff (goal: 5 of 7).",
+    src: "Bryan Johnson, Blueprint", w: 1.0 },
+  { id: "upf", code: "PLAY-02", title: "Swap out ultra-processed food",
+    q: "Do packaged snacks, fast food, or ready meals make up a big part of your day?", hint: "Chips, biscuits, candy bars, instant noodles, frozen pizza.",
+    why: "In a controlled NIH trial, people ate about 500 extra calories a day on an ultra-processed diet without feeling fuller. Pollan's rule: don't eat anything your great-grandmother wouldn't recognize as food.",
+    today: "Move every packaged snack out of sight. Put fruit, nuts or yogurt at eye level instead.",
+    recipe: "After I unpack groceries, I will put one ready-to-eat whole food at the front of the fridge.",
+    track: "Ultra-processed items per day (goal: 1 or fewer).",
+    src: "Hall et al. 2019; Michael Pollan, Food Rules", w: 1.2 },
+  { id: "plants", code: "PLAY-03", title: "Fill half the plate with plants",
+    q: "Do you eat fewer than 5 portions of vegetables and fruit a day?", hint: "A portion is roughly a handful.",
+    why: "\"Mostly plants\" is the common thread across Pollan, Blueprint and almost every longevity diet. Plant variety feeds the gut microbiome: 30+ plant types a week is linked to a more diverse gut.",
+    today: "Add one vegetable to your next meal, even frozen peas or a bag of salad.",
+    recipe: "After I put a plate on the table, I will fill half of it with vegetables first.",
+    track: "Different plants this week, counting herbs, nuts, seeds and legumes (goal: 30).",
+    src: "Michael Pollan; American Gut Project; Tim Spector", w: 1.1 },
+  { id: "sugar", code: "PLAY-04", title: "Drink water, not sugar",
+    q: "Do you drink soda, juice, sweetened coffee, or energy drinks?", hint: "Including sweetened 'healthy' smoothies.",
+    why: "Liquid sugar is the easiest way to blow past the WHO limit, because drinks don't make you feel full. Blueprint allows no added sugar at all.",
+    today: "Fill a large water bottle and keep it on your desk. Replace one sweet drink with water or unsweetened tea.",
+    recipe: "After I sit down at my desk, I will drink a glass of water.",
+    track: "Sweetened drinks per week (goal: 0–2).",
+    src: "WHO sugar guideline 2015; Bryan Johnson, Blueprint", w: 1.2 },
+  { id: "protein", code: "PLAY-05", title: "Put protein in every meal",
+    q: "Do meals often lack a clear protein source?", hint: "Beans, lentils, fish, eggs, tofu, meat, Greek yogurt.",
+    why: "Protein keeps you full and protects muscle as you age. Peter Attia argues most people eat far too little and aims well above the 0.8 g/kg RDA. 1.2–1.6 g/kg is a common evidence-based range.",
+    today: "Add one palm-sized protein to breakfast tomorrow, such as eggs, Greek yogurt or tofu.",
+    recipe: "After I start making breakfast, I will choose my protein first.",
+    track: "Meals today with a clear protein source (goal: 3 of 3).",
+    src: "Peter Attia, Outlive", w: 1.0 },
+  { id: "skip", code: "PLAY-06", title: "Plan meals and batch-cook",
+    q: "Do you skip meals and then overeat later?", hint: "For example, no lunch, then grazing all evening.",
+    why: "Skipping meals by accident is different from planned fasting. It usually ends in a big, fast, low-quality meal. One planning block removes most of the daily decisions.",
+    today: "Write 3 lunches for the coming week and add the ingredients to your shopping list.",
+    recipe: "After my Sunday coffee, I will cook one batch of grains and one of beans or chicken.",
+    track: "Meals skipped by accident this week (goal: 0).",
+    src: "Behavior design; BJ Fogg, Tiny Habits", w: 1.0 },
+  { id: "speed", code: "PLAY-07", title: "Eat slowly, without screens",
+    q: "Do you eat in front of a screen or finish meals in under 10 minutes?", hint: "Phone, TV or laptop.",
+    why: "Fullness signals take about 20 minutes to reach the brain. Okinawans use hara hachi bu: stop eating at 80% full.",
+    today: "Eat one meal today with your phone in another room. Put your fork down between bites.",
+    recipe: "After I sit down to eat, I will put my phone face down out of reach.",
+    track: "Screen-free meals this week (goal: 1 a day).",
+    src: "Okinawan hara hachi bu; mindful eating research", w: 0.8 },
+  { id: "alcohol", code: "PLAY-08", title: "Cut back on alcohol",
+    q: "Do you drink alcohol on 3 or more days a week?", hint: "Any amount counts.",
+    why: "The WHO says no level of alcohol is safe for health. Alcohol also wrecks sleep and lowers your resistance to late-night snacks. Blueprint drinks none.",
+    today: "Pick your alcohol-free days for this week and buy an alcohol-free drink you enjoy.",
+    recipe: "After I get home from work, I will pour sparkling water into my usual glass.",
+    track: "Alcohol-free days this week (goal: 5 or more).",
+    src: "WHO 2023; Bryan Johnson, Blueprint", w: 1.2 },
+  { id: "emotion", code: "PLAY-09", title: "Check HALT before you snack",
+    q: "Do you eat when stressed, bored, or tired rather than hungry?", hint: "Reaching for food without a hungry stomach.",
+    why: "Emotional eating is about the urge, not the hunger. Naming the urge and waiting a short time lets it pass, usually within 10–15 minutes.",
+    today: "Before your next unplanned snack, ask yourself: am I Hungry, Angry, Lonely or Tired? Then wait 10 minutes.",
+    recipe: "After I open the snack cupboard, I will take three slow breaths and name what I feel.",
+    track: "Urges you noticed and waited out this week.",
+    src: "HALT check; urge surfing (Marlatt)", w: 1.0 },
+  { id: "blind", code: "PLAY-10", title: "Measure for one week",
+    q: "Would you struggle to say what you ate yesterday?", hint: "Including drinks and bites while cooking.",
+    why: "You can't improve what you don't see. Bryan Johnson's approach is built on measuring everything. A 7-day food log shows patterns that triage misses.",
+    today: "Photograph everything you eat or drink until next Sunday. No counting needed.",
+    recipe: "After I pick up a fork, I will take a photo of the plate.",
+    track: "Days logged (goal: 7 of 7, then stop).",
+    src: "Bryan Johnson, Blueprint, \"measure everything\"", w: 0.8 },
+  { id: "takeout", code: "PLAY-11", title: "Cook four nights a week",
+    q: "Do you rely on takeout or delivery more than 3 times a week?", hint: "Including meal-deal lunches.",
+    why: "Restaurant meals usually have more salt, sugar and fat, and bigger portions. Pollan's simplest advice: cook. Even basic home cooking beats most delivery.",
+    today: "Pick two 15-minute recipes and buy the ingredients for both.",
+    recipe: "After I get home on Monday, I will start dinner before opening any delivery app.",
+    track: "Home-cooked dinners this week (goal: 4).",
+    src: "Michael Pollan, Cooked", w: 0.9 }
+];
+
+const EXAMPLE = { late: 2, upf: 1, plants: 2, sugar: 1, protein: 1, skip: 0, speed: 2, alcohol: 0, emotion: 1, blind: 0, takeout: 1 };
+const LABELS = ["Rarely", "Sometimes", "Often"];
+const SEV = ["OK", "P2 · next", "P1 · fix first"];
+const KEY = "goodfood-triage-v1";
+
+let state = { answers: { ...EXAMPLE }, example: true };
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (saved && saved.answers) state = saved;
+} catch (e) {}
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+const qlist = document.getElementById("qlist");
+qlist.innerHTML = PLAYS.map((p, i) => `
+  <li class="q">
+    <span class="num">${String(i + 1).padStart(2, "0")}</span>
+    <div><p>${p.q}</p><span class="hint">${p.hint}</span></div>
+    <div class="seg" role="radiogroup" aria-label="${p.q}">
+      ${LABELS.map((l, v) => `
+        <input type="radio" name="q-${p.id}" id="q-${p.id}-${v}" value="${v}">
+        <label for="q-${p.id}-${v}">${l}</label>`).join("")}
+    </div>
+  </li>`).join("");
+
+document.getElementById("play-grid").innerHTML = PLAYS.map(p => `
+  <article class="play" id="play-${p.id}">
+    <div class="play-top"><span class="mono muted">${p.code}</span><span class="pill" data-pill="${p.id}"></span></div>
+    <h3>${p.title}</h3>
+    <div class="field"><span class="mono">Triage signal</span><p>${p.q}</p></div>
+    <div class="field"><span class="mono">Why it matters</span><p>${p.why}</p></div>
+    <div class="do"><span class="mono">Do today</span><p>${p.today}</p></div>
+    <div class="field"><span class="mono">Tiny habit</span><p class="recipe">${p.recipe}</p></div>
+    <div class="field"><span class="mono">Track</span><p>${p.track}</p></div>
+    <p class="src">Source: ${p.src}</p>
+  </article>`).join("");
+
+function ranked() {
+  return PLAYS
+    .map(p => ({ ...p, v: state.answers[p.id] }))
+    .filter(p => p.v > 0)
+    .sort((a, b) => (b.v - a.v) || (b.w - a.w));
+}
+
+function render() {
+  PLAYS.forEach(p => {
+    const v = state.answers[p.id];
+    document.querySelectorAll(`input[name="q-${p.id}"]`).forEach(r => { r.checked = Number(r.value) === v; });
+    const pill = document.querySelector(`[data-pill="${p.id}"]`);
+    pill.className = "pill" + (v === undefined ? "" : " sev-" + v);
+    pill.textContent = v === undefined ? "Not answered" : SEV[v];
+  });
+  const vals = PLAYS.map(p => state.answers[p.id]);
+  document.getElementById("n-p1").textContent = vals.filter(v => v === 2).length;
+  document.getElementById("n-p2").textContent = vals.filter(v => v === 1).length;
+  document.getElementById("n-ok").textContent = vals.filter(v => v === 0).length;
+  document.getElementById("example-note").hidden = !state.example;
+
+  const top = ranked().slice(0, 3);
+  const answered = vals.filter(v => v !== undefined).length;
+  document.getElementById("next").innerHTML = top.length
+    ? top.map(p => `
+      <li class="sev-${p.v}">
+        <span class="mono muted">${p.code} · ${SEV[p.v]}</span>
+        <a href="#play-${p.id}">${p.title}</a>
+        <span class="cta">${p.today}</span>
+      </li>`).join("")
+    : `<li><span class="muted">${answered ? "Every area looks fine. Keep your current habits and retake the triage next Sunday." : "Answer the questions to see your top three plays here."}</span></li>`;
+}
+
+qlist.addEventListener("change", e => {
+  const m = e.target.name && e.target.name.match(/^q-(.+)$/);
+  if (!m) return;
+  state.answers[m[1]] = Number(e.target.value);
+  state.example = false;
+  save(); render();
+});
+
+document.getElementById("clear-btn").addEventListener("click", () => {
+  state = { answers: {}, example: false };
+  save(); render();
+});
+
+function planText() {
+  const top = ranked();
+  const lines = ["My Good Food plan (" + new Date().toLocaleDateString() + ")", ""];
+  if (!top.length) lines.push("Every area looks fine. Retake the triage next Sunday.");
+  top.forEach((p, i) => {
+    lines.push(`${i + 1}. [${SEV[p.v]}] ${p.title}`);
+    lines.push(`   Do today: ${p.today}`);
+    lines.push(`   Tiny habit: ${p.recipe}`);
+    lines.push(`   Track: ${p.track}`);
+  });
+  lines.push("", "Rule: run no more than 2 plays at once. Review every Sunday.");
+  return lines.join("\n");
+}
+
+document.getElementById("copy-btn").addEventListener("click", () => {
+  const text = planText();
+  const status = document.getElementById("copy-status");
+  const fb = document.getElementById("copy-fallback");
+  const fallback = () => {
+    fb.value = text; fb.hidden = false; fb.focus(); fb.select();
+    status.textContent = "Couldn't copy automatically. The plan is selected below, so press Ctrl+C or ⌘C to copy it.";
+  };
+  try {
+    navigator.clipboard.writeText(text).then(() => {
+      fb.hidden = true; status.textContent = "Copied. Paste it into your notes or send it to a friend.";
+    }, fallback);
+  } catch (e) { fallback(); }
+});
+
+render();
+</script>
