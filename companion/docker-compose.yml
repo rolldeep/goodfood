@@ -1,0 +1,9 @@
+services:
+  companion:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data   # SQLite history + cached voice notes live here: back this up
