@@ -1,6 +1,7 @@
 """Text-to-speech with pluggable providers, producing Telegram voice notes (OGG/Opus).
 
 Providers:
+  fish        Fish Audio: natural voices, big public voice library, voice cloning
   edge        free Microsoft neural voices via the `edge-tts` package (no key)
   elevenlabs  best quality, paid (Flash v2.5 model by default: lowest cost tier)
   openai      gpt-4o-mini-tts, cheap and natural
@@ -32,6 +33,28 @@ async def _edge(text: str, voice: str, out_mp3: Path) -> None:
     import edge_tts
 
     await edge_tts.Communicate(text, voice).save(str(out_mp3))
+
+
+async def _fish(text: str, cfg: Config, out_mp3: Path) -> None:
+    if not cfg.fish_api_key:
+        raise TTSError("FISH_API_KEY is not set")
+    from fishaudio import AsyncFishAudio
+    from fishaudio.types import Prosody, TTSConfig
+
+    client = AsyncFishAudio(api_key=cfg.fish_api_key)
+    audio = await client.tts.convert(
+        text=text,
+        reference_id=cfg.fish_voice_id or None,  # None = Fish's default voice
+        config=TTSConfig(
+            format="mp3",
+            latency=cfg.fish_latency,
+            prosody=Prosody(speed=cfg.fish_speed) if cfg.fish_speed != 1.0 else None,
+        ),
+        model=cfg.fish_model,
+    )
+    if not audio:
+        raise TTSError("Fish Audio returned no audio")
+    out_mp3.write_bytes(audio)
 
 
 async def _elevenlabs(text: str, cfg: Config, out_mp3: Path) -> None:
@@ -93,6 +116,7 @@ class Speaker:
     def _voice_id(self, provider: str) -> str:
         return {
             "edge": self.cfg.edge_voice,
+            "fish": f"{self.cfg.fish_voice_id}:{self.cfg.fish_model}:{self.cfg.fish_speed}",
             "elevenlabs": f"{self.cfg.elevenlabs_voice_id}:{self.cfg.elevenlabs_model}",
             "openai": f"{self.cfg.openai_tts_voice}:{self.cfg.openai_tts_model}",
         }.get(provider, provider)
@@ -107,6 +131,8 @@ class Speaker:
     async def _synth(self, provider: str, text: str, out_mp3: Path) -> None:
         if provider == "edge":
             await _edge(text, self.cfg.edge_voice, out_mp3)
+        elif provider == "fish":
+            await _fish(text, self.cfg, out_mp3)
         elif provider == "elevenlabs":
             await _elevenlabs(text, self.cfg, out_mp3)
         elif provider == "openai":

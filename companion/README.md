@@ -26,26 +26,36 @@ General education, not medical advice.
 
 Each step comes as a voice note plus text, with ✅ Done / ⏭ Skip / ⏰ 30 min buttons. Any reply within 4 hours is saved as your answer to that step. Steps are only sent within 90 minutes of their time, so a restart never sends a flood of old messages, and each step is sent at most once a day.
 
-## Voice: which TTS?
+## Voice: Fish Audio (default)
 
-| Provider | Cost | Quality | Set |
-|---|---|---|---|
-| **Edge TTS** (default) | Free, no key | Good neural voices | `TTS_PROVIDER=edge` |
-| **OpenAI** `gpt-4o-mini-tts` | Cheap, roughly cents per day at this volume | Very natural, accepts tone instructions | `TTS_PROVIDER=openai` + `OPENAI_API_KEY` |
-| **ElevenLabs** Flash v2.5 | Most expensive (subscription credits) | Best, voice cloning | `TTS_PROVIDER=elevenlabs` + `ELEVENLABS_API_KEY` |
+[Fish Audio](https://fish.audio) is the default voice: natural speech, a large public voice library, and voice cloning from a short sample.
 
-Start with Edge, which is free. Switch to ElevenLabs if you want a particular voice. The daily protocol messages are fixed text, so each one is synthesized once and served from `data/audio_cache/` after that. Only Claude's conversational replies cost TTS characters. If the paid provider fails, the bot falls back to Edge, then to text only.
+1. Create an API key at fish.audio and set `FISH_API_KEY`.
+2. Pick a voice:
+   - **From the library:** open a voice on fish.audio. Its URL looks like `fish.audio/m/<id>`. Put that `<id>` in `FISH_VOICE_ID`.
+   - **Clone one:** record 15–60 s of clean speech (one speaker, no music), then run:
+     ```bash
+     python -m companion.clone_voice --title "My coach" sample.mp3
+     # or in Docker:
+     docker compose run --rm -v "$PWD/sample.mp3:/sample.mp3" companion python -m companion.clone_voice --title "My coach" /sample.mp3
+     ```
+     It prints `FISH_VOICE_ID=...`. Add that to `.env` and restart. `--list` shows your voices. Only clone a voice you have the right to use, such as your own or one whose owner agreed.
+   - Leave `FISH_VOICE_ID` empty to use Fish's default voice.
+3. Tune it with `FISH_MODEL` (default `s2.1-pro`), `FISH_LATENCY` (`normal` = best quality) and `FISH_SPEED` (0.5–2.0).
+4. Send `/preview morning_light` to the bot to hear it.
 
-The Edge option uses the unofficial `edge-tts` package. It works well but has no SLA, which is why there's an automatic fallback.
+The daily protocol messages are fixed text, so each one is synthesized once and cached in `data/audio_cache/`. After that, only Claude's replies use Fish credits. Changing the voice, model or speed regenerates the cache automatically.
 
-Prices change, so check current pricing before you pick a paid tier.
+If Fish fails (no key, out of credits, network), the bot falls back to free Edge TTS, then to text only.
+
+Other providers: `TTS_PROVIDER=edge` (free, no key), `openai` (`gpt-4o-mini-tts`) or `elevenlabs`. Prices change, so check current pricing before you pick a paid tier.
 
 **Voice in (optional):** `STT_PROVIDER=groq` (Whisper on Groq, the cheapest) or `openai`. With `none`, voice notes are still saved (Telegram `file_id`), just not understood.
 
 ## Setup
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token.
-2. `cp .env.example .env`, then fill in `TELEGRAM_BOT_TOKEN` and (for real conversation) `ANTHROPIC_API_KEY`.
+2. `cp .env.example .env`, then fill in `TELEGRAM_BOT_TOKEN`, `FISH_API_KEY` (+ `FISH_VOICE_ID`) and, for real conversation, `ANTHROPIC_API_KEY`.
 3. Run it (pick one):
 
 ```bash

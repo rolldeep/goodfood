@@ -122,3 +122,48 @@ async def test_speaker_falls_back_and_caches(tmp_path: Path, monkeypatch):
     second = await speaker.speak("hello")
     assert first == second and first.exists()
     assert calls == ["elevenlabs", "edge", "elevenlabs"]  # edge result cached the 2nd time
+
+
+@pytest.mark.asyncio
+async def test_fish_provider_request(tmp_path: Path, monkeypatch):
+    import subprocess
+
+    import fishaudio
+
+    from companion import tts as ttsmod
+
+    mp3 = tmp_path / "src.mp3"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "sine=d=0.3", str(mp3)], check=True)
+    seen = {}
+
+    class FakeTTS:
+        async def convert(self, **kw):
+            seen.update(kw)
+            return mp3.read_bytes()
+
+    class FakeClient:
+        def __init__(self, api_key):
+            seen["api_key"] = api_key
+            self.tts = FakeTTS()
+
+    monkeypatch.setattr(fishaudio, "AsyncFishAudio", FakeClient)
+    cfg = Config(telegram_token="x", data_dir=tmp_path, fish_api_key="k", fish_voice_id="abc", fish_speed=0.9)
+    ogg = await Speaker(cfg).speak("Good morning")
+    assert ogg is not None and ogg.read_bytes()[:4] == b"OggS"
+    assert seen["api_key"] == "k" and seen["reference_id"] == "abc" and seen["model"] == "s2.1-pro"
+    assert seen["config"].format == "mp3" and seen["config"].prosody.speed == 0.9
+
+
+@pytest.mark.asyncio
+async def test_fish_without_key_falls_back_to_edge(tmp_path: Path, monkeypatch):
+    cfg = Config(telegram_token="x", data_dir=tmp_path)  # default provider fish, no key
+    speaker = Speaker(cfg)
+    tried = []
+
+    async def fake_edge(text, voice, out):
+        tried.append("edge")
+        raise RuntimeError("offline")
+
+    monkeypatch.setattr("companion.tts._edge", fake_edge)
+    assert await speaker.speak("hi") is None  # text-only fallback
+    assert tried == ["edge"]

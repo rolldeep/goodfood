@@ -36,7 +36,12 @@ class Config:
     claude_model: str = "claude-opus-5-5"
     claude_effort: str = "low"
 
-    tts_provider: str = "edge"
+    tts_provider: str = "fish"
+    fish_api_key: str = ""
+    fish_voice_id: str = ""          # reference_id of a fish.audio voice (library or your clone)
+    fish_model: str = "s2.1-pro"
+    fish_latency: str = "normal"     # normal = best quality, balanced = faster
+    fish_speed: float = 1.0
     edge_voice: str = "en-US-AndrewNeural"
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = "JBFqnCBsd6RMkjVDRZzb"
@@ -78,7 +83,12 @@ class Config:
             anthropic_api_key=_env("ANTHROPIC_API_KEY"),
             claude_model=_env("CLAUDE_MODEL", "claude-opus-5-5"),
             claude_effort=_env("CLAUDE_EFFORT", "low"),
-            tts_provider=_env("TTS_PROVIDER", "edge").lower(),
+            tts_provider=_env("TTS_PROVIDER", "fish").lower(),
+            fish_api_key=_env("FISH_API_KEY"),
+            fish_voice_id=_env("FISH_VOICE_ID"),
+            fish_model=_env("FISH_MODEL", "s2.1-pro"),
+            fish_latency=_env("FISH_LATENCY", "normal"),
+            fish_speed=float(_env("FISH_SPEED", "1.0")),
             edge_voice=_env("EDGE_VOICE", "en-US-AndrewNeural"),
             elevenlabs_api_key=_env("ELEVENLABS_API_KEY"),
             elevenlabs_voice_id=_env("ELEVENLABS_VOICE_ID", "JBFqnCBsd6RMkjVDRZzb"),
