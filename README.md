@@ -8,4 +8,6 @@
 
 Advice draws on Bryan Johnson (Blueprint), Michael Pollan, Peter Attia, BJ Fogg, WHO guidelines, and the NIH ultra-processed food trial (Hall et al. 2019).
 
+**Daily companion** (`companion/`): a private Telegram bot that walks you through Andrew Huberman's three basics (morning light, resistance training, sleep) with voice notes, and saves every reply. See [companion/README.md](companion/README.md).
+
 General education, not medical advice.
